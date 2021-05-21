@@ -1,5 +1,6 @@
 # Robust Bayesian optimization
-The following code was developed during a post-doc in collaboration with Ecole des Mines de Saint-Etienne and Ecole Centrale de Lyon as part of the OQUAIDO chair by Julien Pelamatti, Rodolphe Le Riche, Christophette Blanchet-Scalliet and Céline Helbert.
+The following code was developed during a post-doc in collaboration with Ecole des Mines de Saint-Etienne and Ecole Centrale de Lyon as part of the OQUAIDO chair by Julien Pelamatti, Rodolphe Le Riche, Christophette Blanchet-Scalliet and Céline Helbert. The theory behind the implemented algorithms is detailed in the paper 'Coupling constraints in Bayesian optimization'.
+
 Part of the code presented in this repository is inspired from the code developed by Reda El Amri for the paper ''A Sampling Criterion for Constrained BayesianOptimization with Uncertainties''
 
 Files :
