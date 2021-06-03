@@ -207,8 +207,6 @@ Expectation_C <- function(x,modelConst,alea,d,m,n_g)
     sigma = cov_l
     lower <- rep(-Inf, n_g)
     upper <- rep(0, n_g)
-    # lower <- rep(0, n_g)
-    # upper <- rep(Inf, n_g)
     pof = mvtnorm::pmvnorm(lower = lower, upper = upper, mean = mean, sigma = sigma)
     toto = c(toto,pof)
   }
@@ -245,12 +243,9 @@ Probability_C <- function(x,modelConst,alea,beta,Nsim,d,m,n_g)
   }
   inp = setNames(inp, modelConst$inputNames)
   
-  # sim = kergp::simulate(modelConst,nsim=Nsim,newdata=inp,cond=TRUE)$sim 
-  # sim = simulate_fix(modelConst,nsim=Nsim,newdata=inp,cond=TRUE)$sim
   sim = simulate_new(modelConst,nsim=Nsim,newdata=inp,cond=TRUE, nugget.sim = 1e-10)
   
   sim = t(sim)
-  # test <- apply(sim,1,function(vect) length(which(vect<=0.))/dim(inp)[1])
   test <- apply(sim,1,FeasCount,n_g)
   
   c <- length(which(test >= beta))/Nsim
@@ -407,8 +402,7 @@ unext <- function(xp1,xnew,rep,modelObjective,alea,ming,m,d)
   aleaa <- rnorm(5000,oldlaw[1],max(oldlaw[2],1e-6))
   aleaa <- choice.grid(aleaa,rep,ng=1)
   aleaa <- as.vector(aleaa$opti_grid[,1])
-  # aleaa <- matrix(randtoolbox::sobol(n=rep, dim = 1, init = TRUE, scrambling = 0, seed = 4711, normal = TRUE),ncol=1)
-  # aleaa <- aleaa*oldlaw[2] + oldlaw[1]
+
   variZplus1 <- PredVar_MC_Z(xnew,xp1,modelObjective,alea,d,m)
   stopping <- 0
   term1 <- term2 <- NULL

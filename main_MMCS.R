@@ -1,3 +1,5 @@
+# Script allowing to perform robust Bayesian optimization with multi-output modeling of constraints and selection of most useful constraint
+
 source("Auxiliary_functions.R")
 
 # Definitions of the problem functions
@@ -52,8 +54,8 @@ m <- 2 # Dimension of U
 n_g = 2 # Number of constraints
 n = 6*(d+m) #Number of points in the inital data set
 U_MC <- 300 # Montecarlo generation of samples of U
-N_xOpt <- 2000 # Search grid for the optimal values of X
-N_uOpt <- 1000 # Search grid for the optimal values of U
+N_xOpt <- 300 # Search grid for the optimal values of X
+N_uOpt <- 300 # Search grid for the optimal values of U
 
 
 Nsim <- 100 # Number of simulated trajectories for the computation of P(C < 0) 
@@ -63,7 +65,7 @@ beta <- 1 - alpha
 quantizer <- 10
 
 
-iterations = 160 #Infilled data samples for the optimization
+iterations = 100 #Infilled data samples for the optimization
 InpNames = c('x1','x2','u1','u2')
 ConstNames = c('g1','g2')
 
@@ -72,7 +74,7 @@ ConstNames = c('g1','g2')
 ################ 
 
 # Sampling of the initial data set. For this test-case, two independent uniform distributions are considered for u1 and u2.
-design = matrix(maximinSA_LHS(lhsDesign(n,d, seed = rep)$design)$design, ncol = d)
+design = matrix(maximinSA_LHS(lhsDesign(n,d, seed = 0)$design)$design, ncol = d)
 design = cbind(design,runif(n))
 design = cbind(design,runif(n))
 
@@ -87,12 +89,21 @@ responseObjective <- apply(design, 1, Objective)
 responseConstraint1 <- apply(design, 1, Constraint1)
 responseConstraint2 <- apply(design, 1, Constraint2)
 
+df = data.frame(design,responseConstraint1,responseConstraint2)
+df = setNames(df,c(InpNames,ConstNames))
+
+df = melt(df, id.vars = InpNames,variable.name = "output",
+          value.name = "value")
+
 colnames(design) = InpNames
 
 #Type of covariances used for the continuous variables
 covtype <- "matern5_2"
 
 for(iter in 1:iterations){
+  
+  cat('Iteration number ', iter)
+  
   ################ 
   ################ Initial GP models
   ################ 
@@ -186,17 +197,46 @@ for(iter in 1:iterations){
   newObj  = Objective(newxu_f[1:(d+m)])
   responseObjective = c(responseObjective,newObj[1])
   
-  res = list(df,design)
-  RES[[rep]] = res
-  
-  fichier_res <- "Res_MMCS"
-  ff <- paste(fichier_res, "RData", sep=".")
-  save(RES,file=ff)
+
   }
 
 
+#Post Processing results
+
+faux = function(X)
+{
+  
+  Xl = matrix(0, nrow = 0, ncol = d)
+  for(j in 1:1000) Xl = rbind(Xl,X)
+  Inp = cbind(Xl,U)
+  
+  F = apply(Inp,1,Objective)
+  
+  G1 = apply(Inp,1,Constraint1)
+  
+  G2 = apply(Inp,1,Constraint2)
+  
+  
+  return(c(mean(F),length(which(G1<= 0. & G2 <= 0))/1000))
+}
+
+#Montecarlo runs used to computed the expected value of the objective function and the probability of feasibility on the sampled data points
+U = matrix(cbind(runif(1000),runif(1000)),ncol = m) 
+registerDoFuture()
+plan(multisession, workers = max(detectCores()-1, 1))
+
+X =design[,1:(d)]
+
+registerDoFuture()
+plan(multisession, workers = max(detectCores()-1, 1))
+Processed_res = future_apply(X,1,faux)
 
 
+fmean = Processed_res[1,]
+pg =  Processed_res[2,]
 
+Optimum_value = min(fmean[which(pg>=beta)])
+
+cat('Identified optimal robust value equal to ', Optimum_value)
 
 

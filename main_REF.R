@@ -238,59 +238,50 @@ Objective <- function(X)
 }
 
 
+
 d <- 2 # Dimension of X
 m <- 2 # Dimension of U        
 n_g = 2 # Number of constraints
 n = 6*(d+m) #Number of points in the inital data set
 U_MC <- 300 # Montecarlo generation of samples of U
-N_xOpt <- 2000 # Search grid for the optimal values of X
-N_uOpt <- 1000 # Search grid for the optimal values of U
+N_xOpt <- 300 # Search grid for the optimal values of X
+N_uOpt <- 300 # Search grid for the optimal values of U
 
 
 Nsim <- 100 # Number of simulated trajectories for the computation of P(C < 0) 
-seuil <- c(0.,0.) # Limit value of the constraints
 alpha <- 0.05 # Tollerated probability of failure
 beta <- 1 - alpha
 quantizer <- 10
 
-repetitions = 10
-iterations = 80
-
-################ 
-################ Initial Doe and simulator responses
-################ 
-# n = 6*(d+m) #nb points initiaux
-
+seuil <- c(0.,0.) # threshold
 sign <- c("<","<")
 InpNames = c('x1','x2','u1','u2')
 ConstNames = c('g1','g2')
 
-load('DoE.RData')
-# load('Res_ref.RData')
 
-RES = list()
-
-for(rep in 1:repetitions)
-{
-  doe = DOE[[rep]]
-  
-  design_init = doe[[1]]
-  
-  alea <- doe[[2]]
-  
-  lhs_xtarg = doe[[3]]
-  
-  Opt =doe[[4]]
-  
-  # res = RES[[rep]]
-  # df = res[[1]]
-  # design_init = res[[2]]
-  design = design_init
+iterations = 80 #Infilled data samples for the optimization
 
 
-response_f <- apply(design_init, 1, Objective) #simulator responses
-response_g_1 <- apply(design_init, 1, Constraint1) #simulator responses
-response_g_2 <- apply(design_init, 1, Constraint2) #simulator responses
+################ 
+################ Initial Doe and simulator responses
+################ 
+
+# Sampling of the initial data set. For this test-case, two independent uniform distributions are considered for u1 and u2.
+design = matrix(maximinSA_LHS(lhsDesign(n,d, seed = 0)$design)$design, ncol = d)
+design = cbind(design,runif(n))
+design = cbind(design,runif(n))
+design_init = design
+
+alea <- matrix(cbind(runif(U_MC),runif(U_MC)),ncol = m)
+
+lhs_xtarg = lhsDesign(N_xOpt,d)$design
+
+Opt = lhsDesign(N_uOpt,m)$design
+
+#simulator responses
+response_f <- apply(design, 1, Objective)
+response_g_1 <- apply(design, 1, Constraint1)
+response_g_2 <- apply(design, 1, Constraint2)
 
 covtype <- "matern5_2"
 
@@ -313,6 +304,8 @@ print("initialization: Done")
 
 for(i in 1:iterations)
 {
+  
+  cat('Iteration number ', i)
   
   registerDoFuture()
   plan(multisession, workers = max(detectCores()-1, 1))
@@ -364,19 +357,41 @@ for(i in 1:iterations)
 
 design=design_init
 
+#Post Processing results
 
-  colnames(design) = InpNames
-  df = data.frame(design,response_g_1,response_g_2)
-  df = setNames(df,c(InpNames,ConstNames))
+faux = function(X)
+{
   
-  df = melt(df, id.vars = InpNames,variable.name = "output",
-            value.name = "value")
-
-
-  res = list(df,design)
-  RES[[rep]] = res
+  Xl = matrix(0, nrow = 0, ncol = d)
+  for(j in 1:1000) Xl = rbind(Xl,X)
+  Inp = cbind(Xl,U)
+  
+  F = apply(Inp,1,Objective)
+  
+  G1 = apply(Inp,1,Constraint1)
+  
+  G2 = apply(Inp,1,Constraint2)
+  
+  
+  return(c(mean(F),length(which(G1<= 0. & G2 <= 0))/1000))
 }
 
-fichier_res <- "Res_ref"
-ff <- paste(fichier_res, "RData", sep=".")
-save(RES,file=ff)
+#Montecarlo runs used to computed the expected value of the objective function and the probability of feasibility on the sampled data points
+U = matrix(cbind(runif(1000),runif(1000)),ncol = m) 
+registerDoFuture()
+plan(multisession, workers = max(detectCores()-1, 1))
+
+X =design[,1:(d)]
+
+registerDoFuture()
+plan(multisession, workers = max(detectCores()-1, 1))
+Processed_res = future_apply(X,1,faux)
+
+
+fmean = Processed_res[1,]
+pg =  Processed_res[2,]
+
+Optimum_value = min(fmean[which(pg>=beta)])
+
+cat('Identified optimal robust value equal to ', Optimum_value)
+
