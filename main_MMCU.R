@@ -1,3 +1,5 @@
+# Script allowing to perform robust Bayesian optimization with multi-output modeling of constraints
+
 source("Auxiliary_functions.R")
 
 Constraint1 <- function(X)

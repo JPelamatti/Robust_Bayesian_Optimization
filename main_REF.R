@@ -1,3 +1,5 @@
+# Script allowing to perform robust Bayesian optimization implementing the algorithm proposed by Reda et al. in ''A Sampling Criterion for Constrained BayesianOptimization with Uncertainties''
+
 library('DiceDesign')
 library('DiceKriging')
 library("parallel")
