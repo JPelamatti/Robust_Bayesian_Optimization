@@ -9,3 +9,4 @@ Files :
   - `main_MMCU.R` : allows to perform the robust Bayesian optimization relying on Multioutput Modeling and simultaneous and identical refinement of all problem functions
   - `main_REF.R` : allows to perform the robust Bayesian optimization relying on independent modeling of all outputs and simultaneous and identical refinement of all problem functions
   - `main_SMCS.R` : allows to perform the robust Bayesian optimization relying on independent modeling of all outputs and selection of the refined constraint
+  - `simulate_new.R` : contains the function allowing to simulate Gaussian process trajectories
